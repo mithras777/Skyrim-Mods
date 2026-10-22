@@ -3,6 +3,8 @@
 #include "magic/MagicOrganizerManager.h"
 #include "util/LogUtil.h"
 
+#include <imgui.h>
+
 #include <vector>
 
 namespace UI
@@ -47,28 +49,32 @@ namespace UI
 				return;
 			}
 
-			std::vector<RE::FormID> toUnhide;
+			std::vector<T> toUnhide;
 			if (ImGui::BeginTable(a_tableID, 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
 				ImGui::TableSetupColumn("Entry", ImGuiTableColumnFlags_WidthStretch);
 				ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 34.0f);
 
 				for (const auto& entry : a_entries) {
-					ImGui::PushID(static_cast<int>(entry.formID));
+					if (!entry.stableFormID.empty()) {
+						ImGui::PushID(entry.stableFormID.c_str());
+					} else {
+						ImGui::PushID(static_cast<int>(entry.formID));
+					}
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					const auto cleaned = StripDisplayFormID(entry.displayName);
 					ImGui::TextUnformatted(cleaned.c_str());
 					ImGui::TableSetColumnIndex(1);
 					if (ImGui::Button("X")) {
-						toUnhide.push_back(entry.formID);
+						toUnhide.push_back(entry);
 					}
 					ImGui::PopID();
 				}
 				ImGui::EndTable();
 			}
 
-			for (const auto formID : toUnhide) {
-				a_unhide(formID);
+			for (const auto& entry : toUnhide) {
+				a_unhide(entry);
 			}
 		}
 
@@ -96,7 +102,7 @@ namespace UI
 
 			ImGui::Separator();
 			ImGui::PushTextWrapPos(0.0f);
-			ImGui::TextDisabled("Hidden entries are stored in MagicOrganizer.json and shared across all playthroughs.");
+			ImGui::TextDisabled("Hidden entries use plugin-qualified FormIDs (e.g. 0x804~ExamplePlugin.esp), so load-order changes will not unhide them.");
 			ImGui::TextColored(
 				ImVec4(0.90f, 0.75f, 1.00f, 1.00f),
 				"Tip: Open Magic Menu, highlight any spell/power/shout/effect, then press your hotkey to hide it. Hiding is UI-only.");
@@ -135,22 +141,34 @@ namespace UI
 				}
 
 				if (ImGui::BeginTabItem("Spells")) {
-					DrawHiddenTable("HiddenSpellsTable", "Hidden Spells", manager->GetHiddenSpells(), [&](RE::FormID id) {
-						manager->UnhideSpell(id);
+					DrawHiddenTable("HiddenSpellsTable", "Hidden Spells", manager->GetHiddenSpells(), [&](const MITHRAS::MAGIC_ORGANIZER::SpellEntry& entry) {
+						if (entry.stableFormID.empty()) {
+							manager->UnhideSpell(entry.formID);
+						} else {
+							manager->UnhideSpell(entry.stableFormID);
+						}
 					});
 					ImGui::EndTabItem();
 				}
 
 				if (ImGui::BeginTabItem("Powers")) {
-					DrawHiddenTable("HiddenPowersTable", "Hidden Powers/Shouts", manager->GetHiddenPowersAndShouts(), [&](RE::FormID id) {
-						manager->UnhidePowerOrShout(id);
+					DrawHiddenTable("HiddenPowersTable", "Hidden Powers/Shouts", manager->GetHiddenPowersAndShouts(), [&](const MITHRAS::MAGIC_ORGANIZER::PowerShoutEntry& entry) {
+						if (entry.stableFormID.empty()) {
+							manager->UnhidePowerOrShout(entry.formID);
+						} else {
+							manager->UnhidePowerOrShout(entry.stableFormID);
+						}
 					});
 					ImGui::EndTabItem();
 				}
 
 				if (ImGui::BeginTabItem("Magic Effects")) {
-					DrawHiddenTable("HiddenEffectsTable", "Hidden Magic Effects", manager->GetHiddenEffects(), [&](RE::FormID id) {
-						manager->UnhideEffect(id);
+					DrawHiddenTable("HiddenEffectsTable", "Hidden Magic Effects", manager->GetHiddenEffects(), [&](const MITHRAS::MAGIC_ORGANIZER::MagicEffectEntry& entry) {
+						if (entry.stableFormID.empty()) {
+							manager->UnhideEffect(entry.formID);
+						} else {
+							manager->UnhideEffect(entry.stableFormID);
+						}
 					});
 					ImGui::EndTabItem();
 				}

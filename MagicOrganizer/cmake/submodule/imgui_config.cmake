@@ -16,6 +16,7 @@ FetchContent_Populate(
 	${IMGUI_NAME}
 	GIT_REPOSITORY  ${IMGUI_REPO_URL}
 	GIT_TAG         ${IMGUI_REPO_TAG}
+	GIT_SHALLOW     TRUE
 	SOURCE_DIR      ${IMGUI_ROOT_DIR}
 )
 #################################################

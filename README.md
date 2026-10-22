@@ -1,44 +1,9 @@
-# Workflow
+# Skyrim SKSE Plugin Template
 
-## New mod setup
+The reusable command-line CMake template is in [`Template.zip`](Template.zip). Extract it, rename the resulting `Template` folder to your plugin name, edit the project metadata in `CMakeLists.txt`, and run `Build.bat` from that folder.
 
-1. Unzip the template and run `CMake_Build.bat`.
-2. Choose `2` (alandtse / NG).
-3. Enter project metadata and template type.
-4. The script auto-copies shared dependencies from:
-   - `SpellBinding/SpellBinding/extern/` to `<NewMod>/<NewMod>/extern/`
-5. The script then automatically runs:
-   - `cmake --preset vs2022-ng` (or selected preset)
-   - `cmake --build --preset vs2022-ng-rel` (matching `-rel` preset)
+The build uses CMake, Ninja, MSVC Build Tools, and CommonLibSSE-NG. It creates `Nexus Release/<PluginName>.zip` with the plugin DLL and PDB in the SKSE plugin folder. See [`Template/README.md`](Template/README.md) for setup requirements and runtime notes.
 
-After that, the project is configured and release-built once.
+The starter reuses the CommonLibSSE-NG v12.1.0 source and release bundle cached by MagicOrganizer in this workspace. The older Visual Studio projects use the v6.7.1 checkout already used by DiagonalSprint, so they share the format-5 Address Library support needed by Skyrim 1.7.104 without cloning CommonLib separately for every mod. Both versions target Skyrim SE/AE; matching Address Library files are still required, and future runtime formats need a compatible CommonLib update.
 
-## Day-to-day
-
-1. Edit code under `ModName/ModName/include/` and `ModName/ModName/src/`.
-2. Rebuild release:
-   - `cmake --build --preset vs2022-ng-rel`
-
-Build outputs are in `.bin/x64-release/`.
-
-# Where To Find Functions/Hooks
-
-- RE/game API headers:
-  - `ModName/extern/CommonLibSSE/include/RE/`
-- SKSE headers:
-  - `ModName/extern/CommonLibSSE/include/SKSE/`
-- NG proxy headers:
-  - `ModName/extern/CommonLibSSE/include/PROXY/`
-
-Use your project `extern/CommonLibSSE/include` tree as the source of truth for available types and function signatures.
-
-# Save Data Behavior
-
-- SKSE serialization (cosave):
-  - Per save game (`.ess`)
-  - Used for playthrough/runtime progression data
-- JSON config:
-  - Global file-based settings
-  - Shared across saves unless changed
-
-Loading an older save restores the serialized state from that save, not the latest runtime state from another save.
+`Template.7z` and `CMake_Build.bat` are the previous generated-project workflow; the new ZIP contains a complete starter project that can be extracted and built directly.

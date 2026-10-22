@@ -522,9 +522,10 @@ set GitIgnore_Line6=/%PROJECT_NAME%/extern/
 :: Auto-copy shared dependencies (assume no download)
 :: =================================
 echo.
-echo [INFO] Auto-copying shared dependencies from SpellBinding...
-set "SHARED_EXTERN_SOURCE=%~dp0..\SpellBinding\SpellBinding\extern"
+echo [INFO] Auto-copying shared dependencies from Diagonal Sprint...
+set "SHARED_EXTERN_SOURCE=%~dp0..\DiagonalSprint\DiagonalSprint\extern"
 set "PROJECT_EXTERN_TARGET=%PROJECT_NAME%\extern"
+if /I "%PROJECT_NAME%"=="DiagonalSprint" goto :skip_shared_extern_copy
 
 if not exist "%SHARED_EXTERN_SOURCE%" (
     echo [WARNING] Shared extern source not found:
@@ -547,6 +548,7 @@ if %ERRORLEVEL% GEQ 4 (
 
 echo [SUCCESS] Dependencies copied to %PROJECT_EXTERN_TARGET%.
 
+:skip_shared_extern_copy
 echo [INFO] Running configure: cmake --preset %CONFIG_PRESET%
 cmake --preset %CONFIG_PRESET%
 if %ERRORLEVEL% neq 0 (

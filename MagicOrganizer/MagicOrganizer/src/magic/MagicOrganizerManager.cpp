@@ -4,13 +4,15 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cstring>
 #include <format>
 #include <fstream>
+#include <limits>
 #include <optional>
 #include <set>
 
-#include "json/single_include/nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 
 namespace MITHRAS::MAGIC_ORGANIZER
 {
@@ -22,32 +24,116 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		constexpr auto kHiddenPowersKey = "hidden_powers";
 		constexpr auto kHiddenEffectsKey = "hidden_effects";
 
-		std::vector<RE::FormID> ReadFormIDArray(const json& a_root, const char* a_key)
+		struct PluginFormID
 		{
-			std::vector<RE::FormID> out;
+			RE::FormID localFormID{ 0 };
+			std::string pluginName{};
+		};
+
+		struct LoadedFormIDs
+		{
+			std::vector<PluginFormID> pluginFormIDs{};
+			std::vector<RE::FormID> legacyFormIDs{};
+		};
+
+		std::optional<PluginFormID> ParsePluginFormID(std::string_view a_value)
+		{
+			if (a_value.size() < 5 || (a_value[0] != '0') || (a_value[1] != 'x' && a_value[1] != 'X')) {
+				return std::nullopt;
+			}
+			const auto separator = a_value.find('~', 2);
+			if (separator == std::string_view::npos || separator == 2 || separator + 1 >= a_value.size()) {
+				return std::nullopt;
+			}
+
+			std::uint32_t localFormID = 0;
+			const auto* first = a_value.data() + 2;
+			const auto* last = a_value.data() + separator;
+			const auto parsed = std::from_chars(first, last, localFormID, 16);
+			if (parsed.ec != std::errc{} || parsed.ptr != last || localFormID == 0 || localFormID > 0x00FFFFFF) {
+				return std::nullopt;
+			}
+
+			return PluginFormID{ localFormID, std::string(a_value.substr(separator + 1)) };
+		}
+
+		std::string FormatPluginFormID(RE::FormID a_localFormID, std::string_view a_pluginName)
+		{
+			return std::format("0x{:X}~{}", a_localFormID, a_pluginName);
+		}
+
+		bool IsSamePluginFormID(RE::FormID a_leftLocalFormID, std::string_view a_leftPluginName, RE::FormID a_rightLocalFormID, std::string_view a_rightPluginName)
+		{
+			return a_leftLocalFormID == a_rightLocalFormID &&
+			       a_leftPluginName.size() == a_rightPluginName.size() &&
+			       _strnicmp(a_leftPluginName.data(), a_rightPluginName.data(), a_leftPluginName.size()) == 0;
+		}
+
+		std::optional<PluginFormID> GetPluginFormID(RE::FormID a_formID)
+		{
+			if (a_formID == 0 || a_formID >= 0xFF000000) {
+				return std::nullopt;
+			}
+			auto* dataHandler = RE::TESDataHandler::GetSingleton();
+			if (!dataHandler) {
+				return std::nullopt;
+			}
+
+			const auto loadIndex = static_cast<std::uint8_t>(a_formID >> 24);
+			const RE::TESFile* plugin = nullptr;
+			RE::FormID localFormID = 0;
+			if (loadIndex == 0xFE) {
+				const auto lightIndex = static_cast<std::uint16_t>((a_formID & 0x00FFF000) >> 12);
+				plugin = dataHandler->LookupLoadedLightModByIndex(lightIndex);
+				localFormID = a_formID & 0x00000FFF;
+			} else {
+				plugin = dataHandler->LookupLoadedModByIndex(loadIndex);
+				localFormID = a_formID & 0x00FFFFFF;
+			}
+			if (!plugin || plugin->GetFilename().empty() || localFormID == 0) {
+				return std::nullopt;
+			}
+			return PluginFormID{ localFormID, std::string(plugin->GetFilename()) };
+		}
+
+		RE::TESForm* ResolvePluginFormID(const PluginFormID& a_pluginFormID)
+		{
+			auto* dataHandler = RE::TESDataHandler::GetSingleton();
+			return dataHandler ? dataHandler->LookupForm(a_pluginFormID.localFormID, a_pluginFormID.pluginName) : nullptr;
+		}
+
+		LoadedFormIDs ReadFormIDArray(const json& a_root, const char* a_key)
+		{
+			LoadedFormIDs out;
 			if (!a_root.contains(a_key) || !a_root[a_key].is_array()) {
 				return out;
 			}
 
 			for (const auto& entry : a_root[a_key]) {
-				if (!entry.is_number_unsigned()) {
+				if (entry.is_string()) {
+					if (const auto pluginFormID = ParsePluginFormID(entry.get<std::string>()); pluginFormID.has_value()) {
+						out.pluginFormIDs.push_back(*pluginFormID);
+					}
 					continue;
 				}
-				const auto raw = entry.get<std::uint64_t>();
-				const auto formID = static_cast<RE::FormID>(raw & 0xFFFFFFFFu);
-				if (formID != 0) {
-					out.push_back(formID);
-				}
-			}
-			return out;
-		}
 
-		json WriteFormIDArray(const std::vector<RE::FormID>& a_formIDs)
-		{
-			json out = json::array();
-			for (const auto formID : a_formIDs) {
-				if (formID != 0) {
-					out.push_back(formID);
+				std::uint64_t raw = 0;
+				if (entry.is_number_unsigned()) {
+					raw = entry.get<std::uint64_t>();
+				} else if (entry.is_number_integer()) {
+					const auto signedRaw = entry.get<std::int64_t>();
+					if (signedRaw <= 0) {
+						continue;
+					}
+					raw = static_cast<std::uint64_t>(signedRaw);
+				} else {
+					continue;
+				}
+				if (raw <= std::numeric_limits<RE::FormID>::max()) {
+					const auto formID = static_cast<RE::FormID>(raw);
+					if (formID != 0) {
+						out.legacyFormIDs.push_back(formID);
+					}
 				}
 			}
 			return out;
@@ -276,19 +362,21 @@ namespace MITHRAS::MAGIC_ORGANIZER
 
 	std::vector<SpellEntry> Manager::GetHiddenSpells() const
 	{
-		std::vector<RE::FormID> hiddenFormIDs;
+		std::vector<StoredFormID> hiddenFormIDs;
 		{
 			std::scoped_lock lock(m_lock);
 			hiddenFormIDs = m_hiddenSpellFormIDs;
 		}
 		std::vector<SpellEntry> hidden;
 		hidden.reserve(hiddenFormIDs.size());
-		for (const auto formID : hiddenFormIDs) {
-			auto* spell = RE::TESForm::LookupByID<RE::SpellItem>(formID);
+		for (const auto& storedFormID : hiddenFormIDs) {
+			auto* spell = storedFormID.formID ? RE::TESForm::LookupByID<RE::SpellItem>(storedFormID.formID) : nullptr;
+			const auto stableFormID = storedFormID.pluginName.empty() ? std::string{} : FormatPluginFormID(storedFormID.localFormID, storedFormID.pluginName);
 			if (spell && IsOrganizerSpell(spell)) {
-				hidden.push_back({ formID, BuildSpellDisplayName(spell) });
+				hidden.push_back({ storedFormID.formID, BuildSpellDisplayName(spell), stableFormID });
 			} else {
-				hidden.push_back({ formID, std::format("<Missing {:08X}>", formID) });
+				const auto missingID = stableFormID.empty() ? std::format("{:08X}", storedFormID.formID) : stableFormID;
+				hidden.push_back({ storedFormID.formID, std::format("<Missing {}>", missingID), stableFormID });
 			}
 		}
 		return hidden;
@@ -296,24 +384,26 @@ namespace MITHRAS::MAGIC_ORGANIZER
 
 	std::vector<PowerShoutEntry> Manager::GetHiddenPowersAndShouts() const
 	{
-		std::vector<RE::FormID> hiddenFormIDs;
+		std::vector<StoredFormID> hiddenFormIDs;
 		{
 			std::scoped_lock lock(m_lock);
 			hiddenFormIDs = m_hiddenPowerShoutFormIDs;
 		}
 		std::vector<PowerShoutEntry> hidden;
 		hidden.reserve(hiddenFormIDs.size());
-		for (const auto formID : hiddenFormIDs) {
-			auto* spell = RE::TESForm::LookupByID<RE::SpellItem>(formID);
+		for (const auto& storedFormID : hiddenFormIDs) {
+			auto* spell = storedFormID.formID ? RE::TESForm::LookupByID<RE::SpellItem>(storedFormID.formID) : nullptr;
+			const auto stableFormID = storedFormID.pluginName.empty() ? std::string{} : FormatPluginFormID(storedFormID.localFormID, storedFormID.pluginName);
 			if (spell && IsOrganizerPower(spell)) {
-				hidden.push_back({ formID, BuildPowerShoutDisplayName(spell) });
+				hidden.push_back({ storedFormID.formID, BuildPowerShoutDisplayName(spell), stableFormID });
 				continue;
 			}
-			auto* shout = RE::TESForm::LookupByID<RE::TESShout>(formID);
+			auto* shout = storedFormID.formID ? RE::TESForm::LookupByID<RE::TESShout>(storedFormID.formID) : nullptr;
 			if (shout && IsOrganizerShout(shout)) {
-				hidden.push_back({ formID, BuildPowerShoutDisplayName(shout) });
+				hidden.push_back({ storedFormID.formID, BuildPowerShoutDisplayName(shout), stableFormID });
 			} else {
-				hidden.push_back({ formID, std::format("<Missing {:08X}>", formID) });
+				const auto missingID = stableFormID.empty() ? std::format("{:08X}", storedFormID.formID) : stableFormID;
+				hidden.push_back({ storedFormID.formID, std::format("<Missing {}>", missingID), stableFormID });
 			}
 		}
 		return hidden;
@@ -321,22 +411,35 @@ namespace MITHRAS::MAGIC_ORGANIZER
 
 	std::vector<MagicEffectEntry> Manager::GetHiddenEffects() const
 	{
-		std::vector<RE::FormID> hiddenFormIDs;
+		std::vector<StoredFormID> hiddenFormIDs;
 		{
 			std::scoped_lock lock(m_lock);
 			hiddenFormIDs = m_hiddenEffectFormIDs;
 		}
 		std::vector<MagicEffectEntry> hidden;
 		hidden.reserve(hiddenFormIDs.size());
-		for (const auto formID : hiddenFormIDs) {
-			auto* effect = RE::TESForm::LookupByID<RE::EffectSetting>(formID);
+		for (const auto& storedFormID : hiddenFormIDs) {
+			auto* effect = storedFormID.formID ? RE::TESForm::LookupByID<RE::EffectSetting>(storedFormID.formID) : nullptr;
+			const auto stableFormID = storedFormID.pluginName.empty() ? std::string{} : FormatPluginFormID(storedFormID.localFormID, storedFormID.pluginName);
 			if (effect) {
-				hidden.push_back({ formID, BuildEffectDisplayName(effect) });
+				hidden.push_back({ storedFormID.formID, BuildEffectDisplayName(effect), stableFormID });
 			} else {
-				hidden.push_back({ formID, std::format("<Missing {:08X}>", formID) });
+				const auto missingID = stableFormID.empty() ? std::format("{:08X}", storedFormID.formID) : stableFormID;
+				hidden.push_back({ storedFormID.formID, std::format("<Missing {}>", missingID), stableFormID });
 			}
 		}
 		return hidden;
+	}
+
+	Manager::StoredFormID Manager::CreateStoredFormID(RE::FormID a_formID)
+	{
+		StoredFormID storedFormID{};
+		storedFormID.formID = a_formID;
+		if (const auto pluginFormID = GetPluginFormID(a_formID); pluginFormID.has_value()) {
+			storedFormID.localFormID = pluginFormID->localFormID;
+			storedFormID.pluginName = pluginFormID->pluginName;
+		}
+		return storedFormID;
 	}
 
 	bool Manager::HideSpell(RE::FormID a_formID)
@@ -349,7 +452,7 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		{
 			std::scoped_lock lock(m_lock);
 			if (!IsFormIDHidden(m_hiddenSpellFormIDs, a_formID)) {
-				m_hiddenSpellFormIDs.push_back(a_formID);
+				m_hiddenSpellFormIDs.push_back(CreateStoredFormID(a_formID));
 				NormalizeConfig();
 				changed = true;
 			}
@@ -368,7 +471,33 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		{
 			std::scoped_lock lock(m_lock);
 			auto& hidden = m_hiddenSpellFormIDs;
-			auto it = std::remove(hidden.begin(), hidden.end(), a_formID);
+			auto it = std::remove_if(hidden.begin(), hidden.end(), [a_formID](const StoredFormID& a_entry) { return a_entry.formID == a_formID; });
+			if (it != hidden.end()) {
+				hidden.erase(it, hidden.end());
+				removed = true;
+			}
+		}
+		if (!removed) {
+			return false;
+		}
+		SaveConfigToJson();
+		RefreshMagicMenuIfOpen();
+		return true;
+	}
+
+	bool Manager::UnhideSpell(std::string_view a_stableFormID)
+	{
+		const auto pluginFormID = ParsePluginFormID(a_stableFormID);
+		if (!pluginFormID) {
+			return false;
+		}
+		bool removed = false;
+		{
+			std::scoped_lock lock(m_lock);
+			auto& hidden = m_hiddenSpellFormIDs;
+			auto it = std::remove_if(hidden.begin(), hidden.end(), [&](const StoredFormID& a_entry) {
+				return !a_entry.pluginName.empty() && IsSamePluginFormID(a_entry.localFormID, a_entry.pluginName, pluginFormID->localFormID, pluginFormID->pluginName);
+			});
 			if (it != hidden.end()) {
 				hidden.erase(it, hidden.end());
 				removed = true;
@@ -395,7 +524,7 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		{
 			std::scoped_lock lock(m_lock);
 			if (!IsFormIDHidden(m_hiddenPowerShoutFormIDs, a_formID)) {
-				m_hiddenPowerShoutFormIDs.push_back(a_formID);
+				m_hiddenPowerShoutFormIDs.push_back(CreateStoredFormID(a_formID));
 				NormalizeConfig();
 				changed = true;
 			}
@@ -414,7 +543,33 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		{
 			std::scoped_lock lock(m_lock);
 			auto& hidden = m_hiddenPowerShoutFormIDs;
-			auto it = std::remove(hidden.begin(), hidden.end(), a_formID);
+			auto it = std::remove_if(hidden.begin(), hidden.end(), [a_formID](const StoredFormID& a_entry) { return a_entry.formID == a_formID; });
+			if (it != hidden.end()) {
+				hidden.erase(it, hidden.end());
+				removed = true;
+			}
+		}
+		if (!removed) {
+			return false;
+		}
+		SaveConfigToJson();
+		RefreshMagicMenuIfOpen();
+		return true;
+	}
+
+	bool Manager::UnhidePowerOrShout(std::string_view a_stableFormID)
+	{
+		const auto pluginFormID = ParsePluginFormID(a_stableFormID);
+		if (!pluginFormID) {
+			return false;
+		}
+		bool removed = false;
+		{
+			std::scoped_lock lock(m_lock);
+			auto& hidden = m_hiddenPowerShoutFormIDs;
+			auto it = std::remove_if(hidden.begin(), hidden.end(), [&](const StoredFormID& a_entry) {
+				return !a_entry.pluginName.empty() && IsSamePluginFormID(a_entry.localFormID, a_entry.pluginName, pluginFormID->localFormID, pluginFormID->pluginName);
+			});
 			if (it != hidden.end()) {
 				hidden.erase(it, hidden.end());
 				removed = true;
@@ -437,7 +592,7 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		{
 			std::scoped_lock lock(m_lock);
 			if (!IsFormIDHidden(m_hiddenEffectFormIDs, a_formID)) {
-				m_hiddenEffectFormIDs.push_back(a_formID);
+				m_hiddenEffectFormIDs.push_back(CreateStoredFormID(a_formID));
 				NormalizeConfig();
 				changed = true;
 			}
@@ -456,7 +611,7 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		{
 			std::scoped_lock lock(m_lock);
 			auto& hidden = m_hiddenEffectFormIDs;
-			auto it = std::remove(hidden.begin(), hidden.end(), a_formID);
+			auto it = std::remove_if(hidden.begin(), hidden.end(), [a_formID](const StoredFormID& a_entry) { return a_entry.formID == a_formID; });
 			if (it != hidden.end()) {
 				hidden.erase(it, hidden.end());
 				removed = true;
@@ -467,6 +622,38 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		}
 		if (auto* effect = RE::TESForm::LookupByID<RE::EffectSetting>(a_formID)) {
 			effect->data.flags.reset(kHideFlag);
+		}
+		SaveConfigToJson();
+		RefreshMagicMenuIfOpen();
+		return true;
+	}
+
+	bool Manager::UnhideEffect(std::string_view a_stableFormID)
+	{
+		const auto pluginFormID = ParsePluginFormID(a_stableFormID);
+		if (!pluginFormID) {
+			return false;
+		}
+		std::vector<RE::FormID> removedFormIDs;
+		{
+			std::scoped_lock lock(m_lock);
+			auto& hidden = m_hiddenEffectFormIDs;
+			auto it = std::remove_if(hidden.begin(), hidden.end(), [&](const StoredFormID& a_entry) {
+				const bool matches = !a_entry.pluginName.empty() && IsSamePluginFormID(a_entry.localFormID, a_entry.pluginName, pluginFormID->localFormID, pluginFormID->pluginName);
+				if (matches && a_entry.formID != 0) {
+					removedFormIDs.push_back(a_entry.formID);
+				}
+				return matches;
+			});
+			if (it == hidden.end()) {
+				return false;
+			}
+			hidden.erase(it, hidden.end());
+		}
+		for (const auto formID : removedFormIDs) {
+			if (auto* effect = RE::TESForm::LookupByID<RE::EffectSetting>(formID)) {
+				effect->data.flags.reset(kHideFlag);
+			}
 		}
 		SaveConfigToJson();
 		RefreshMagicMenuIfOpen();
@@ -563,9 +750,9 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		std::error_code ec;
 		std::filesystem::create_directories(path.parent_path(), ec);
 		OrganizerConfig cfg{};
-		std::vector<RE::FormID> hiddenSpells;
-		std::vector<RE::FormID> hiddenPowers;
-		std::vector<RE::FormID> hiddenEffects;
+		std::vector<StoredFormID> hiddenSpells;
+		std::vector<StoredFormID> hiddenPowers;
+		std::vector<StoredFormID> hiddenEffects;
 		{
 			std::scoped_lock lock(m_lock);
 			cfg = m_config;
@@ -573,12 +760,23 @@ namespace MITHRAS::MAGIC_ORGANIZER
 			hiddenPowers = m_hiddenPowerShoutFormIDs;
 			hiddenEffects = m_hiddenEffectFormIDs;
 		}
+		auto writeFormIDArray = [](const auto& a_formIDs) {
+			json out = json::array();
+			for (const auto& formID : a_formIDs) {
+				if (!formID.pluginName.empty() && formID.localFormID != 0) {
+					out.push_back(FormatPluginFormID(formID.localFormID, formID.pluginName));
+				} else if (formID.formID != 0) {
+					out.push_back(formID.formID);
+				}
+			}
+			return out;
+		};
 		json root = {
 			{ "enabled", cfg.enabled },
 			{ "hotkey", cfg.hotkey },
-			{ kHiddenSpellsKey, WriteFormIDArray(hiddenSpells) },
-			{ kHiddenPowersKey, WriteFormIDArray(hiddenPowers) },
-			{ kHiddenEffectsKey, WriteFormIDArray(hiddenEffects) }
+			{ kHiddenSpellsKey, writeFormIDArray(hiddenSpells) },
+			{ kHiddenPowersKey, writeFormIDArray(hiddenPowers) },
+			{ kHiddenEffectsKey, writeFormIDArray(hiddenEffects) }
 		};
 		std::ofstream file(path, std::ios::trunc);
 		if (!file.is_open()) {
@@ -609,9 +807,9 @@ namespace MITHRAS::MAGIC_ORGANIZER
 			return;
 		}
 		OrganizerConfig cfg{};
-		std::vector<RE::FormID> loadedSpells;
-		std::vector<RE::FormID> loadedPowers;
-		std::vector<RE::FormID> loadedEffects;
+		LoadedFormIDs loadedSpells;
+		LoadedFormIDs loadedPowers;
+		LoadedFormIDs loadedEffects;
 		{
 			std::scoped_lock lock(m_lock);
 			cfg = m_config;
@@ -621,13 +819,56 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		loadedSpells = ReadFormIDArray(parsed, kHiddenSpellsKey);
 		loadedPowers = ReadFormIDArray(parsed, kHiddenPowersKey);
 		loadedEffects = ReadFormIDArray(parsed, kHiddenEffectsKey);
+
+		bool migratedLegacyIDs = false;
+		auto buildStoredFormIDs = [&](const LoadedFormIDs& a_loaded, auto a_isValidForm) {
+			std::vector<StoredFormID> storedFormIDs;
+			storedFormIDs.reserve(a_loaded.pluginFormIDs.size() + a_loaded.legacyFormIDs.size());
+			for (const auto& pluginFormID : a_loaded.pluginFormIDs) {
+				StoredFormID storedFormID{};
+				storedFormID.localFormID = pluginFormID.localFormID;
+				storedFormID.pluginName = pluginFormID.pluginName;
+				if (auto* form = ResolvePluginFormID(pluginFormID); form && a_isValidForm(form)) {
+					storedFormID.formID = form->GetFormID();
+				}
+				storedFormIDs.push_back(std::move(storedFormID));
+			}
+			for (const auto formID : a_loaded.legacyFormIDs) {
+				auto* form = RE::TESForm::LookupByID(formID);
+				if (form && a_isValidForm(form)) {
+					auto storedFormID = CreateStoredFormID(form->GetFormID());
+					if (!storedFormID.pluginName.empty()) {
+						storedFormIDs.push_back(std::move(storedFormID));
+						migratedLegacyIDs = true;
+						continue;
+					}
+				}
+				storedFormIDs.push_back({ formID, 0, {} });
+			}
+			return storedFormIDs;
+		};
+		auto isSpell = [](RE::TESForm* a_form) {
+			auto* spell = a_form ? a_form->As<RE::SpellItem>() : nullptr;
+			return spell && !IsOrganizerPower(spell);
+		};
+		auto isPowerOrShout = [](RE::TESForm* a_form) {
+			auto* spell = a_form ? a_form->As<RE::SpellItem>() : nullptr;
+			return (spell && IsOrganizerPower(spell)) || (a_form && a_form->As<RE::TESShout>());
+		};
+		auto isEffect = [](RE::TESForm* a_form) { return a_form && a_form->As<RE::EffectSetting>(); };
+		auto storedSpells = buildStoredFormIDs(loadedSpells, isSpell);
+		auto storedPowers = buildStoredFormIDs(loadedPowers, isPowerOrShout);
+		auto storedEffects = buildStoredFormIDs(loadedEffects, isEffect);
 		{
 			std::scoped_lock lock(m_lock);
 			m_config = cfg;
-			m_hiddenSpellFormIDs = std::move(loadedSpells);
-			m_hiddenPowerShoutFormIDs = std::move(loadedPowers);
-			m_hiddenEffectFormIDs = std::move(loadedEffects);
+			m_hiddenSpellFormIDs = std::move(storedSpells);
+			m_hiddenPowerShoutFormIDs = std::move(storedPowers);
+			m_hiddenEffectFormIDs = std::move(storedEffects);
 			NormalizeConfig();
+		}
+		if (migratedLegacyIDs) {
+			SaveConfigToJson();
 		}
 	}
 
@@ -640,10 +881,28 @@ namespace MITHRAS::MAGIC_ORGANIZER
 
 	void Manager::NormalizeConfig()
 	{
-		auto normalize = [](std::vector<RE::FormID>& a_list) {
-			a_list.erase(std::remove_if(a_list.begin(), a_list.end(), [](const RE::FormID id) { return id == 0; }), a_list.end());
-			std::sort(a_list.begin(), a_list.end());
-			a_list.erase(std::unique(a_list.begin(), a_list.end()), a_list.end());
+		auto normalize = [](std::vector<StoredFormID>& a_list) {
+			a_list.erase(std::remove_if(a_list.begin(), a_list.end(), [](const StoredFormID& a_id) {
+				return a_id.pluginName.empty() ? a_id.formID == 0 : a_id.localFormID == 0;
+			}), a_list.end());
+			std::sort(a_list.begin(), a_list.end(), [](const StoredFormID& a_left, const StoredFormID& a_right) {
+				const bool leftStable = !a_left.pluginName.empty();
+				const bool rightStable = !a_right.pluginName.empty();
+				if (leftStable != rightStable) {
+					return leftStable;
+				}
+				if (leftStable) {
+					const auto pluginOrder = _stricmp(a_left.pluginName.c_str(), a_right.pluginName.c_str());
+					return pluginOrder == 0 ? a_left.localFormID < a_right.localFormID : pluginOrder < 0;
+				}
+				return a_left.formID < a_right.formID;
+			});
+			a_list.erase(std::unique(a_list.begin(), a_list.end(), [](const StoredFormID& a_left, const StoredFormID& a_right) {
+				if (!a_left.pluginName.empty() && !a_right.pluginName.empty()) {
+					return IsSamePluginFormID(a_left.localFormID, a_left.pluginName, a_right.localFormID, a_right.pluginName);
+				}
+				return a_left.pluginName.empty() && a_right.pluginName.empty() && a_left.formID == a_right.formID;
+			}), a_list.end());
 		};
 		normalize(m_hiddenSpellFormIDs);
 		normalize(m_hiddenPowerShoutFormIDs);
@@ -652,17 +911,17 @@ namespace MITHRAS::MAGIC_ORGANIZER
 
 	void Manager::ApplyTrackedFlags()
 	{
-		OrganizerConfig cfg{};
-		std::vector<RE::FormID> hiddenEffects;
+		std::vector<StoredFormID> hiddenEffects;
 		{
 			std::scoped_lock lock(m_lock);
-			cfg = m_config;
 			hiddenEffects = m_hiddenEffectFormIDs;
 		}
 
-		for (const auto formID : hiddenEffects) {
-			if (auto* effect = RE::TESForm::LookupByID<RE::EffectSetting>(formID)) {
-				effect->data.flags.reset(kHideFlag);
+		for (const auto& storedFormID : hiddenEffects) {
+			if (storedFormID.formID != 0) {
+				if (auto* effect = RE::TESForm::LookupByID<RE::EffectSetting>(storedFormID.formID)) {
+					effect->data.flags.reset(kHideFlag);
+				}
 			}
 		}
 		RefreshMagicMenuIfOpen();
@@ -687,9 +946,9 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		runtime.itemList->Update(player);
 
 		OrganizerConfig cfg{};
-		std::vector<RE::FormID> hiddenSpellFormIDs;
-		std::vector<RE::FormID> hiddenPowerFormIDs;
-		std::vector<RE::FormID> hiddenEffectFormIDs;
+		std::vector<StoredFormID> hiddenSpellFormIDs;
+		std::vector<StoredFormID> hiddenPowerFormIDs;
+		std::vector<StoredFormID> hiddenEffectFormIDs;
 		{
 			std::scoped_lock lock(m_lock);
 			cfg = m_config;
@@ -749,9 +1008,11 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		}
 	}
 
-	bool Manager::IsFormIDHidden(const std::vector<RE::FormID>& a_hidden, RE::FormID a_formID)
+	bool Manager::IsFormIDHidden(const std::vector<StoredFormID>& a_hidden, RE::FormID a_formID)
 	{
-		return std::find(a_hidden.begin(), a_hidden.end(), a_formID) != a_hidden.end();
+		return std::find_if(a_hidden.begin(), a_hidden.end(), [a_formID](const StoredFormID& a_entry) {
+			return a_entry.formID == a_formID;
+		}) != a_hidden.end();
 	}
 
 	bool Manager::IsOrganizerSpell(const RE::SpellItem* a_spell)

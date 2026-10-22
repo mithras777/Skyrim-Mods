@@ -12,12 +12,16 @@ include(FetchContent)
 
 set(FETCHCONTENT_QUIET FALSE)
 
-FetchContent_Populate(
-	${IMGUI_NAME}
-	GIT_REPOSITORY  ${IMGUI_REPO_URL}
-	GIT_TAG         ${IMGUI_REPO_TAG}
-	SOURCE_DIR      ${IMGUI_ROOT_DIR}
-)
+if(EXISTS "${IMGUI_ROOT_DIR}/imgui.h")
+	message(STATUS "Reusing existing ${IMGUI_NAME} at ${IMGUI_ROOT_DIR}")
+else()
+	FetchContent_Populate(
+		${IMGUI_NAME}
+		GIT_REPOSITORY  ${IMGUI_REPO_URL}
+		GIT_TAG         ${IMGUI_REPO_TAG}
+		SOURCE_DIR      ${IMGUI_ROOT_DIR}
+	)
+endif()
 #################################################
 # Find files
 #################################################

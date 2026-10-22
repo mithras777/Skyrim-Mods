@@ -2,9 +2,19 @@
 # Configure
 #################################################
 set(COMMONLIBSSE_NAME            "CommonLibSSE")
-set(COMMONLIBSSE_REPO_URL        "https://github.com/alandtse/CommonLibVR")
-set(COMMONLIBSSE_REPO_TAG        "0aeb311") # Commit on Jan 17, 2026
-set(COMMONLIBSSE_ROOT_DIR        "${PROJECT_EXTERN_ROOT_DIR}/${COMMONLIBSSE_NAME}")
+set(COMMONLIBSSE_REPO_URL        "https://github.com/alandtse/CommonLibSSE-NG.git")
+set(COMMONLIBSSE_REPO_TAG        "v6.7.1") # Supports Address Library format 5 (Skyrim 1.7.99+).
+get_filename_component(SKYRIM_MODS_WORKSPACE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../" ABSOLUTE)
+set(COMMONLIBSSE_SHARED_ROOT_DIR "${SKYRIM_MODS_WORKSPACE_ROOT}/DiagonalSprint/DiagonalSprint/extern/${COMMONLIBSSE_NAME}-${COMMONLIBSSE_REPO_TAG}")
+set(COMMONLIBSSE_LOCAL_ROOT_DIR  "${PROJECT_EXTERN_ROOT_DIR}/${COMMONLIBSSE_NAME}-${COMMONLIBSSE_REPO_TAG}")
+if(EXISTS "${SKYRIM_MODS_WORKSPACE_ROOT}/DiagonalSprint/CMakeLists.txt")
+  set(COMMONLIBSSE_ROOT_DIR "${COMMONLIBSSE_SHARED_ROOT_DIR}")
+  message(STATUS "Reusing workspace CommonLibSSE-NG ${COMMONLIBSSE_REPO_TAG} at ${COMMONLIBSSE_ROOT_DIR}")
+elseif(EXISTS "${COMMONLIBSSE_LOCAL_ROOT_DIR}/include/RE/Skyrim.h")
+  set(COMMONLIBSSE_ROOT_DIR "${COMMONLIBSSE_LOCAL_ROOT_DIR}")
+else()
+  set(COMMONLIBSSE_ROOT_DIR "${COMMONLIBSSE_LOCAL_ROOT_DIR}")
+endif()
 set(COMMONLIBSSE_EXTERN_ROOT_DIR "${COMMONLIBSSE_ROOT_DIR}/extern")
 #################################################
 # Fetch Project

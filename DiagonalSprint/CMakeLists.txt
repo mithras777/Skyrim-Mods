@@ -8,7 +8,7 @@ project(
     # Must match folder name
     DiagonalSprint
     DESCRIPTION "DiagonalSprint"
-    VERSION     1.0
+    VERSION     1.0.5
     LANGUAGES   CXX
 )
 
@@ -41,3 +41,11 @@ option(INSTALL_IMGUI "Installs imgui framework" OFF)
 # Submodules / Dependencies
 # =========================
 include(submodule_config)
+
+# Include licenses for the plugin and statically linked CommonLibSSE-NG in the
+# distributable package.
+set(NEXUS_RELEASE_MOD_DIR "${PROJECT_SOURCE_DIR}/Nexus Release/${PROJECT_NAME}")
+file(MAKE_DIRECTORY "${NEXUS_RELEASE_MOD_DIR}")
+file(COPY_FILE "${PROJECT_SOURCE_DIR}/LICENSE" "${NEXUS_RELEASE_MOD_DIR}/LICENSE-DiagonalSprint.txt" ONLY_IF_DIFFERENT)
+file(COPY_FILE "${COMMONLIBSSE_ROOT_DIR}/COPYING" "${NEXUS_RELEASE_MOD_DIR}/COPYING-CommonLibSSE-NG" ONLY_IF_DIFFERENT)
+file(COPY_FILE "${COMMONLIBSSE_ROOT_DIR}/EXCEPTIONS.md" "${NEXUS_RELEASE_MOD_DIR}/EXCEPTIONS-CommonLibSSE-NG.md" ONLY_IF_DIFFERENT)

@@ -8,10 +8,10 @@
 #define VERSION_REVISION                    0
 #define VERSION_BUILD                       0
 #define VERSION_STR                         MAKE_STR(VERSION_MAJOR) "." MAKE_STR(VERSION_MINOR) "." MAKE_STR(VERSION_REVISION) "." MAKE_STR(VERSION_BUILD)
-#define VERSION_PRODUCTNAME_DESCRIPTION_STR "Fixes Jumping Attack Unsheathe Bug" " v" VERSION_STR
+#define VERSION_PRODUCTNAME_DESCRIPTION_STR "JumpAttackFix" " v" VERSION_STR
 
 #define VERSION_PRODUCTNAME_STR             "JumpAttackFix"
-#define VERSION_YEAR_STR                    "2026"
+#define VERSION_YEAR_STR                    "(C) 2025"
 #define VERSION_AUTHOR_STR                  "Mithras666"
 #define VERSION_LICENSE_STR                 "MIT"
 #define VERSION_COPYRIGHT_STR               VERSION_YEAR_STR " " VERSION_AUTHOR_STR " " VERSION_LICENSE_STR

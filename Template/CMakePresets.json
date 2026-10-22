@@ -1,0 +1,43 @@
+{
+	"version": 5,
+	"cmakeMinimumRequired": {
+		"major": 3,
+		"minor": 24,
+		"patch": 0
+	},
+	"configurePresets": [
+		{
+			"name": "windows-ninja",
+			"displayName": "Windows x64 (CMake + Ninja + MSVC)",
+			"description": "Command-line CMake build using Ninja and the Visual C++ compiler",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/cmake-ng",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
+				"CMAKE_CXX_STANDARD": "23",
+				"CMAKE_CXX_STANDARD_REQUIRED": "ON",
+				"CMAKE_CXX_EXTENSIONS": "OFF",
+				"CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL",
+				"CMAKE_TOOLCHAIN_FILE": {
+					"type": "FILEPATH",
+					"value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+				},
+				"VCPKG_TARGET_TRIPLET": "x64-windows",
+				"COMMONLIB_PREBUILT": "ON",
+				"BUILD_TESTS": "OFF",
+				"ENABLE_SKYRIM_SE": "ON",
+				"ENABLE_SKYRIM_AE": "ON",
+				"ENABLE_SKYRIM_VR": "ON",
+				"SKSE_SUPPORT_XBYAK": "ON",
+				"SKSE_SUPPORT_PATCH_SAFETY": "ON"
+			}
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "windows-ninja-release",
+			"configurePreset": "windows-ninja",
+			"description": "Build the release DLL with debug symbols and package it for Nexus"
+		}
+	]
+}

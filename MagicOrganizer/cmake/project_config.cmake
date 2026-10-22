@@ -11,8 +11,6 @@ set(PROJECT_SOURCE_ROOT_DIR   "${PROJECT_ROOT_DIR}/src")
 set(PROJECT_PCH_ROOT_DIR      "${PROJECT_ROOT_DIR}/pch")
 set(PROJECT_RESOURCE_ROOT_DIR "${PROJECT_ROOT_DIR}/resource")
 set(PROJECT_EXTERN_ROOT_DIR   "${PROJECT_ROOT_DIR}/extern")
-# Shared extern source used by Mithras workflow (contains SKSEMenuFramework and reusable deps)
-set(MITHRAS_SHARED_EXTERN_ROOT_DIR "${PROJECT_SOURCE_DIR}/../SpellBinding/SpellBinding/extern")
 # Set defaults for version components if not defined
 set(VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set(VERSION_MINOR ${PROJECT_VERSION_MINOR})
@@ -59,6 +57,9 @@ file(
 	CONFIGURE_DEPENDS
 		"${PROJECT_PCH_ROOT_DIR}/*.*"
 )
+# PCH.cpp only exists to build the old Visual Studio-managed PCH. CMake's
+# native target_precompile_headers() replaces it for command-line generators.
+list(REMOVE_ITEM PROJECT_PCH "${PROJECT_PCH_ROOT_DIR}/PCH.cpp")
 # Find resource file
 file(
 	GLOB              PROJECT_RESOURCE
@@ -107,18 +108,9 @@ target_include_directories(
 		${PROJECT_EXTERN_ROOT_DIR}
 )
 
-if(EXISTS "${MITHRAS_SHARED_EXTERN_ROOT_DIR}")
-	message(STATUS "Using shared extern include path: ${MITHRAS_SHARED_EXTERN_ROOT_DIR}")
-	target_include_directories(
-		${PROJECT_NAME} PRIVATE
-			${MITHRAS_SHARED_EXTERN_ROOT_DIR}
-	)
-endif()
-# Setup precompiled header, cmake does it weird.
+# Use CMake's native PCH setup so Ninja schedules PCH generation before sources.
 if(MSVC)
-	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "/YuPCH.h")
-	set_source_files_properties(${PROJECT_PCH_ROOT_DIR}/PCH.cpp PROPERTIES COMPILE_FLAGS "/YcPCH.h")
-	target_compile_options(${PROJECT_NAME} PRIVATE /FI"PCH.h")
+	target_precompile_headers(${PROJECT_NAME} PRIVATE "${PROJECT_PCH_ROOT_DIR}/PCH.h")
 endif()
 
 # Define unified output directory for all configurations

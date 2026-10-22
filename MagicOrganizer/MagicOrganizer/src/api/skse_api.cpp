@@ -59,27 +59,33 @@ namespace SKSE {
 		}
 	}
 
-#if defined(SKYRIM_SUPPORT_AE) || defined(SKYRIM_SUPPORT_NG)
 	SKSE_API constinit auto SKSEPlugin_Version = []() noexcept {
 		SKSE::PluginVersionData pluginData{};
 
 		pluginData.PluginName(VERSION_PRODUCTNAME_STR);
 		pluginData.PluginVersion(REL::Version(VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION, VERSION_BUILD));
 		pluginData.AuthorName(VERSION_AUTHOR_STR);
-		pluginData.AuthorEmail("https://github.com/ArranzCNL/SkyrimSE-Plugin-Template");
+		pluginData.AuthorEmail("");
 		pluginData.UsesAddressLibrary();
 		pluginData.UsesNoStructs();
+		// CommonLib resolves the 1.5.97 addresses through Address Library too, but SKSE's
+		// post-AE version-independence flag does not cover this pre-AE runtime.
+		pluginData.CompatibleVersions({ REL::Version(1, 5, 97, 0) });
 
 		return pluginData;
 	}();
-#endif
 
-#if !defined(SKYRIM_SUPPORT_AE) || defined(SKYRIM_SUPPORT_NG)
 	SKSE_API bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_pluginInfo)
 	{
 		a_pluginInfo->infoVersion = SKSE::PluginInfo::kVersion;
 		a_pluginInfo->name = VERSION_PRODUCTNAME_STR;
 		a_pluginInfo->version = REL::Version(VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION, VERSION_BUILD).pack();
+
+		const auto runtime = a_skse->RuntimeVersion();
+		if (runtime.minor() == 4) {
+			LOG_CRITICAL("Skyrim VR is not supported; this plugin targets Skyrim SE and AE");
+			return false;
+		}
 
 		if (a_skse->IsEditor()) {
 			LOG_CRITICAL("Loaded in editor, marking as incompatible");
@@ -87,7 +93,6 @@ namespace SKSE {
 		}
 		return true;
 	}
-#endif
 
 	SKSE_API bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 	{

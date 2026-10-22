@@ -78,6 +78,8 @@ namespace SKSE {
 		pluginData.AuthorEmail("https://github.com/ArranzCNL/SkyrimSE-Plugin-Template");
 		pluginData.UsesAddressLibrary();
 		pluginData.UsesNoStructs();
+		// Preserve Skyrim SE 1.5.97 explicitly; Address Library covers newer SE/AE runtimes.
+		pluginData.CompatibleVersions({ REL::Version(1, 5, 97, 0) });
 
 		return pluginData;
 	}();

@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace MITHRAS::MAGIC_ORGANIZER
@@ -18,18 +19,21 @@ namespace MITHRAS::MAGIC_ORGANIZER
 	{
 		RE::FormID formID{ 0 };
 		std::string displayName{};
+		std::string stableFormID{};
 	};
 
 	struct PowerShoutEntry
 	{
 		RE::FormID formID{ 0 };
 		std::string displayName{};
+		std::string stableFormID{};
 	};
 
 	struct MagicEffectEntry
 	{
 		RE::FormID formID{ 0 };
 		std::string displayName{};
+		std::string stableFormID{};
 	};
 
 	class Manager final : public REX::Singleton<Manager>
@@ -54,10 +58,13 @@ namespace MITHRAS::MAGIC_ORGANIZER
 
 		bool HideSpell(RE::FormID a_formID);
 		bool UnhideSpell(RE::FormID a_formID);
+		bool UnhideSpell(std::string_view a_stableFormID);
 		bool HidePowerOrShout(RE::FormID a_formID);
 		bool UnhidePowerOrShout(RE::FormID a_formID);
+		bool UnhidePowerOrShout(std::string_view a_stableFormID);
 		bool HideEffect(RE::FormID a_formID);
 		bool UnhideEffect(RE::FormID a_formID);
+		bool UnhideEffect(std::string_view a_stableFormID);
 
 		bool HideCurrentlySelectedMagicMenuEntry();
 		[[nodiscard]] bool IsSpellHidden(RE::FormID a_formID) const;
@@ -65,15 +72,23 @@ namespace MITHRAS::MAGIC_ORGANIZER
 		[[nodiscard]] bool IsEffectHidden(RE::FormID a_formID) const;
 
 	private:
+		struct StoredFormID
+		{
+			RE::FormID formID{ 0 };
+			RE::FormID localFormID{ 0 };
+			std::string pluginName{};
+		};
+
 		void SaveConfigToJson() const;
 		void LoadConfigFromJson();
 		[[nodiscard]] std::filesystem::path GetConfigPath() const;
+		[[nodiscard]] static StoredFormID CreateStoredFormID(RE::FormID a_formID);
 
 		void NormalizeConfig();
 		void ApplyTrackedFlags();
 		void RefreshMagicMenuIfOpen() const;
 
-		[[nodiscard]] static bool IsFormIDHidden(const std::vector<RE::FormID>& a_hidden, RE::FormID a_formID);
+		[[nodiscard]] static bool IsFormIDHidden(const std::vector<StoredFormID>& a_hidden, RE::FormID a_formID);
 		[[nodiscard]] static bool IsOrganizerSpell(const RE::SpellItem* a_spell);
 		[[nodiscard]] static bool IsOrganizerPower(const RE::SpellItem* a_spell);
 		[[nodiscard]] static bool IsOrganizerShout(const RE::TESShout* a_shout);
@@ -87,9 +102,9 @@ namespace MITHRAS::MAGIC_ORGANIZER
 
 		mutable std::mutex m_lock;
 		OrganizerConfig m_config{};
-		std::vector<RE::FormID> m_hiddenSpellFormIDs{};
-		std::vector<RE::FormID> m_hiddenPowerShoutFormIDs{};
-		std::vector<RE::FormID> m_hiddenEffectFormIDs{};
+		std::vector<StoredFormID> m_hiddenSpellFormIDs{};
+		std::vector<StoredFormID> m_hiddenPowerShoutFormIDs{};
+		std::vector<StoredFormID> m_hiddenEffectFormIDs{};
 		bool m_captureHotkey{ false };
 	};
 }

@@ -2,6 +2,7 @@
 
 #include <map>
 #include <fstream>
+#include <cstdint>
 #include <stdio.h>
 #include <Windows.h>
 
@@ -24,7 +25,7 @@ private:
 	template <typename T>
 	static T read(std::ifstream& file)
 	{
-		T v;
+		T v{};
 		file.read((char*)&v, sizeof(T));
 		return v;
 	}
@@ -187,7 +188,71 @@ public:
 
 		int format = read<int>(file);
 
-		if (format != 2)
+		if (format == 5) {
+			std::uint32_t version[4]{};
+			file.read(reinterpret_cast<char*>(version), sizeof(version));
+
+			char moduleName[64]{};
+			file.read(moduleName, sizeof(moduleName));
+			moduleName[sizeof(moduleName) - 1] = '\0';
+
+			const auto ptrSize = read<std::int32_t>(file);
+			const auto dataFormat = read<std::int32_t>(file);
+			const auto addrCount = read<std::int32_t>(file);
+			(void)dataFormat;  // Reserved by format 5; offsets are stored as dense uint32 values.
+
+			const auto dataStart = file.tellg();
+			if (!file || ptrSize != 8 || addrCount < 0 || dataStart == std::streampos(-1)) {
+				return false;
+			}
+
+			file.seekg(0, std::ios::end);
+			const auto fileEnd = file.tellg();
+			const auto requiredBytes = static_cast<std::uint64_t>(addrCount) * sizeof(std::uint32_t);
+			if (!file || fileEnd < dataStart ||
+				static_cast<std::uint64_t>(fileEnd - dataStart) < requiredBytes) {
+				return false;
+			}
+			file.seekg(dataStart);
+			if (!file) {
+				return false;
+			}
+
+			const int requestedVersion[4]{ major, minor, revision, build };
+			for (int i = 0; i < 4; ++i) {
+				_ver[i] = static_cast<int>(version[i]);
+				if (_ver[i] != requestedVersion[i]) {
+					Clear();
+					return false;
+				}
+			}
+
+			{
+				char verName[64];
+				_snprintf_s(verName, 64, "%d.%d.%d.%d", _ver[0], _ver[1], _ver[2], _ver[3]);
+				_verStr = verName;
+			}
+
+			_moduleName = moduleName;
+			_base = reinterpret_cast<unsigned long long>(
+				GetModuleHandleA(_moduleName.empty() ? nullptr : _moduleName.c_str()));
+
+			for (int id = 0; id < addrCount; ++id) {
+				const auto offset = read<std::uint32_t>(file);
+				if (!file) {
+					Clear();
+					return false;
+				}
+				if (offset != 0) {
+					_data[static_cast<unsigned long long>(id)] = offset;
+					_rdata[offset] = static_cast<unsigned long long>(id);
+				}
+			}
+
+			return true;
+		}
+
+		if (format != 1 && format != 2)
 			return false;
 
 		for (int i = 0; i < 4; i++)
