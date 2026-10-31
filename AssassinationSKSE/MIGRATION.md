@@ -2,7 +2,7 @@
 
 Recreated from `Sources/AssassinationSKSE` and the reusable `Template.zip`.
 CommonLibSSE-NG is pinned to `a6d3ea4642f71fb92ac3e0d7fef5808217f8aae9`.
-Original source snapshots remain untouched. Author and release version metadata were recovered read-only from the existing root Git history.
+The active, buildable source is in this project folder. The original migration layout remains in the prior Git history. Author and release version metadata were recovered from that history.
 
 Build with `cmake --preset ng` then `cmake --build --preset ng-release`.
 Packages are written to `dist`. These are migration builds pending in-game testing,

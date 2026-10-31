@@ -3,7 +3,8 @@ set(MOD_NAME "" CACHE STRING "Plugin name; empty uses the extracted folder name"
 set(MOD_AUTHOR "Mithras666" CACHE STRING "Plugin author")
 set(MOD_VERSION "1.0.0" CACHE STRING "Plugin version")
 set(MOD_DESCRIPTION "AssassinationSKSE migrated to pinned CommonLibSSE-NG" CACHE STRING "Plugin description")
-set(MOD_LICENSE "MIT" CACHE STRING "License for your own plugin code")
+set(MOD_SOURCE_URL "https://github.com/mithras777/Skyrim-Mods/tree/main/AssassinationSKSE" CACHE STRING "Public source repository URL")
+set(MOD_LICENSE "GPL-3.0-or-later" CACHE STRING "License for your own plugin code")
 
 option(MOD_WITH_JSON "Enable nlohmann JSON and REX JSON support" ON)
 option(MOD_WITH_INI "Enable SimpleIni and REX INI support" OFF)

@@ -75,12 +75,16 @@ set(MOD_NAME "" CACHE STRING "Plugin name; empty uses the extracted folder name"
 set(MOD_AUTHOR "Mithras666" CACHE STRING "Plugin author")
 set(MOD_VERSION "1.0.0" CACHE STRING "Plugin version")
 set(MOD_DESCRIPTION "Describe what your mod does" CACHE STRING "Plugin description")
-set(MOD_LICENSE "MIT" CACHE STRING "License for your own plugin code")
+set(MOD_LICENSE "GPL-3.0-or-later" CACHE STRING "License for your own plugin code")
+set(MOD_SOURCE_URL "" CACHE STRING "Public source repository URL")
 ```
 
 Leave `MOD_NAME` empty to use the folder name: `MyNewMod` produces `MyNewMod.dll`.
 Set it explicitly only when you want a different plugin name. Folder names with
 spaces are supported. Keep the option declarations below the metadata lines.
+Before packaging for release, set `MOD_SOURCE_URL` to the public GitHub folder
+containing this mod's source. The release ZIP writes that link into its root
+`README.txt` alongside the full `LICENSE.txt`.
 
 All optional integrations default to `OFF`. In the same file, change the options
 your mod needs to `ON`. For example, JSON settings and a framework settings panel
@@ -343,6 +347,36 @@ mods and gameplay testing remain pending. Each has a `MIGRATION.md` with details
 | MagicOrganizer | [ZIP](<C:/Coding/Skyrim Mods/MagicOrganizer/dist/MagicOrganizer-1.0.0-RelWithDebInfo.zip>) | SKSE Menu Framework for settings. |
 | MordhauCombat | [ZIP](<C:/Coding/Skyrim Mods/MordhauCombat/dist/MordhauCombat-1.0.0-RelWithDebInfo.zip>) | Open Animation Replacer for animation routing; SKSE Menu Framework for settings. |
 | SpellBinding | [ZIP](<C:/Coding/Skyrim Mods/SpellBinding/dist/SpellBinding-1.0.0-RelWithDebInfo.zip>) | PrismaUI for the menu and HUD. |
+
+## License and public source
+
+The original source code for each of the seven mods is licensed under the GNU
+GPL, version 3 or any later version. Each mod folder contains the full,
+unmodified license text as `LICENSE.txt`; each release archive places the same
+file at its root and includes a `README.txt` with the public source link and
+copyright and warranty notice.
+
+The official GPL-3.0 license text is also available at
+https://www.gnu.org/licenses/gpl-3.0.html. This code license does not replace
+separate terms for third-party libraries or bundled assets.
+
+| Mod | Public source |
+| --- | --- |
+| AssassinationSKSE | [GitHub source](https://github.com/mithras777/Skyrim-Mods/tree/main/AssassinationSKSE) |
+| ConfigurableSpeeds | [GitHub source](https://github.com/mithras777/Skyrim-Mods/tree/main/ConfigurableSpeeds) |
+| DiagonalSprint | [GitHub source](https://github.com/mithras777/Skyrim-Mods/tree/main/DiagonalSprint) |
+| JumpAttackFix | [GitHub source](https://github.com/mithras777/Skyrim-Mods/tree/main/JumpAttackFix) |
+| MagicOrganizer | [GitHub source](https://github.com/mithras777/Skyrim-Mods/tree/main/MagicOrganizer) |
+| MordhauCombat | [GitHub source](https://github.com/mithras777/Skyrim-Mods/tree/main/MordhauCombat) |
+| SpellBinding | [GitHub source](https://github.com/mithras777/Skyrim-Mods/tree/main/SpellBinding) |
+
+CommonLibSSE-NG is pinned to revision
+`a6d3ea4642f71fb92ac3e0d7fef5808217f8aae9`. Upstream licenses it under
+GPL-3.0-or-later with its Modding Exception and GPL-3.0 Linking Exception.
+The release archives include the pinned dependency's `COPYING.txt`,
+`EXCEPTIONS.md`, and the notices for the other locked dependencies. The
+template-derived portions retain ArranzCNL's MIT notice. Other bundled assets
+and third-party components retain their applicable notices and terms.
 
 All seven also need SKSE and Address Library matching the game. Install the full
 ZIP when testing SpellBinding or MordhauCombat so their web UI/animations are
