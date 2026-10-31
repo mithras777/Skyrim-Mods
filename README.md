@@ -351,10 +351,11 @@ mods and gameplay testing remain pending. Each has a `MIGRATION.md` with details
 ## License and public source
 
 The original source code for each of the seven mods is licensed under the GNU
-GPL, version 3 or any later version. Each mod folder contains the full,
-unmodified license text as `LICENSE.txt`; each release archive places the same
-file at its root and includes a `README.txt` with the public source link and
-copyright and warranty notice.
+GPL, version 3 or any later version (GPL-3.0-or-later). The repository root
+`LICENSE` and each mod folder's `LICENSE.txt` contain the full, unmodified
+GPL-3.0 text. Each release archive places the same file at its root and
+includes a `README.txt` with the public source link and copyright and warranty
+notice.
 
 The official GPL-3.0 license text is also available at
 https://www.gnu.org/licenses/gpl-3.0.html. This code license does not replace
