@@ -34,7 +34,7 @@ SKSEPluginInfo(
     .Name = VERSION_PRODUCTNAME_STR,
     .Author = VERSION_AUTHOR_STR,
     .StructCompatibility = SKSE::StructCompatibility::Dependent,
-    .RuntimeCompatibility = SKSE::VersionIndependence::AddressLibrary
+    .RuntimeCompatibility = { SKSE::VersionIndependence::AddressLibrary, true }
 );
 
 namespace SKSE {
