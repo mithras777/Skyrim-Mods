@@ -1,7 +1,6 @@
-# Ignore build artifacts and binary outputs
-/.bin/
-/.lib/
+/extern/
 /build/
-
-# Ignore extern directory inside JumpAttackFix
-/JumpAttackFix/extern/
+/dist/
+/CMakeUserPresets.json
+**/node_modules/
+**/__pycache__/

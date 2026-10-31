@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.24)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/WebCache.cmake")
+skyrim_web_dependencies()
+find_program(NPM_EXECUTABLE NAMES npm.cmd npm REQUIRED)
+execute_process(COMMAND "${NPM_EXECUTABLE}" run build WORKING_DIRECTORY "${SKYRIM_WEB_DIR}" COMMAND_ERROR_IS_FATAL ANY)

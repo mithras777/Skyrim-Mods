@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "libraries": {
+    "commonlib_ng": {
+      "repository": "https://github.com/alandtse/CommonLibSSE-NG",
+      "ref": "a6d3ea4642f71fb92ac3e0d7fef5808217f8aae9",
+      "revision": "a6d3ea4642f71fb92ac3e0d7fef5808217f8aae9",
+      "url": "https://codeload.github.com/alandtse/CommonLibSSE-NG/zip/a6d3ea4642f71fb92ac3e0d7fef5808217f8aae9",
+      "sha256": "de2e426d673c49eabd2e6c59ef18f9b43e41a5309acac8a8e1f9bfc88673d281",
+      "required": "CMakeLists.txt"
+    },
+    "commonlib_po3": {
+      "repository": "https://github.com/powerof3/CommonLibSSE",
+      "ref": "431ded2",
+      "revision": "431ded26ff2861c2de2e29f839a7c36f1829c592",
+      "url": "https://codeload.github.com/powerof3/CommonLibSSE/zip/431ded26ff2861c2de2e29f839a7c36f1829c592",
+      "sha256": "a2bab4466d2c92ae8076ca08afc4ec7ea97099bd99ffe5effd2d1bc9d4cc8135",
+      "required": "CMakeLists.txt"
+    },
+    "directxtk": {
+      "repository": "https://github.com/microsoft/DirectXTK",
+      "ref": "may2026",
+      "revision": "5a8f5d01cc1328e6451b588617c9985fa5a2a8ab",
+      "url": "https://codeload.github.com/microsoft/DirectXTK/zip/5a8f5d01cc1328e6451b588617c9985fa5a2a8ab",
+      "sha256": "778b4665157da645664fe4f03e450b2b95005ca077f765c5b989a1caa15fe1ea",
+      "required": "CMakeLists.txt"
+    },
+    "spdlog": {
+      "repository": "https://github.com/gabime/spdlog",
+      "ref": "v1.17.0",
+      "revision": "79524ddd08a4ec981b7fea76afd08ee05f83755d",
+      "url": "https://codeload.github.com/gabime/spdlog/zip/79524ddd08a4ec981b7fea76afd08ee05f83755d",
+      "sha256": "2594162a28f06d12bf38ab4388c002156db9f8d5f7bcb0e1b4e60067dbad6c76",
+      "required": "CMakeLists.txt"
+    },
+    "xbyak": {
+      "repository": "https://github.com/herumi/xbyak",
+      "ref": "v7.38",
+      "revision": "de15edd1c8cdb46616ab9bba8413da5fdaad336e",
+      "url": "https://codeload.github.com/herumi/xbyak/zip/de15edd1c8cdb46616ab9bba8413da5fdaad336e",
+      "sha256": "4b97b946151ba264ab72f401e5d7fc65b733fbd1aa11857bea4d61a09efe618b",
+      "required": "xbyak/xbyak.h"
+    },
+    "imgui": {
+      "repository": "https://github.com/ocornut/imgui",
+      "ref": "v1.92.9b",
+      "revision": "f1cc2ae15e53a861a874c3034aae6798fde194ab",
+      "url": "https://codeload.github.com/ocornut/imgui/zip/f1cc2ae15e53a861a874c3034aae6798fde194ab",
+      "sha256": "008e1f3398e1c6e4d317ae4a05d2dec597bd360f4f3717b1d96e9edb66dba34f",
+      "required": "imgui.h"
+    },
+    "json": {
+      "repository": "https://github.com/nlohmann/json",
+      "ref": "v3.12.0",
+      "revision": "55f93686c01528224f448c19128836e7df245f72",
+      "url": "https://codeload.github.com/nlohmann/json/zip/55f93686c01528224f448c19128836e7df245f72",
+      "sha256": "0746352e4e9532e7aeabbcbaa79079b6bc6008e9261e4d459c9486a9b48a172e",
+      "required": "single_include/nlohmann/json.hpp"
+    },
+    "simpleini": {
+      "repository": "https://github.com/brofield/simpleini",
+      "ref": "v4.26",
+      "revision": "877f7357d1fa4232f1f3352e5028f99899210b27",
+      "url": "https://codeload.github.com/brofield/simpleini/zip/877f7357d1fa4232f1f3352e5028f99899210b27",
+      "sha256": "afb20f4683154cfbf68eecca758b521ed2b58866526fc1209e648c386b7fd959",
+      "required": "SimpleIni.h"
+    },
+    "toml11": {
+      "repository": "https://github.com/ToruNiina/toml11",
+      "ref": "v4.4.0",
+      "revision": "be08ba2be2a964edcdb3d3e3ea8d100abc26f286",
+      "url": "https://codeload.github.com/ToruNiina/toml11/zip/be08ba2be2a964edcdb3d3e3ea8d100abc26f286",
+      "sha256": "8e88741a6586b5360846e875ec01dd959e1d5062384bf50fe7441760436a4332",
+      "required": "single_include/toml.hpp"
+    },
+    "binary_io": {
+      "repository": "https://github.com/Ryan-rsm-McKenzie/binary_io",
+      "ref": "2.0.6",
+      "revision": "098afdec287b216cf6d78d9f98d95b6ff833a900",
+      "url": "https://codeload.github.com/Ryan-rsm-McKenzie/binary_io/zip/098afdec287b216cf6d78d9f98d95b6ff833a900",
+      "sha256": "872dc80e8b4eaac77d5cfe8a81a3f11cccc35e61cba65bcac86714b9b17ba029",
+      "required": "CMakeLists.txt"
+    },
+    "rapidcsv": {
+      "repository": "https://github.com/d99kris/rapidcsv",
+      "ref": "v8.90",
+      "revision": "03133b59e17ca92ecf886b611d87a03ad2bb2a8f",
+      "url": "https://codeload.github.com/d99kris/rapidcsv/zip/03133b59e17ca92ecf886b611d87a03ad2bb2a8f",
+      "sha256": "60ff71d871b0f227dad61ab1720d2a81a15cf036180473edaa317b6afbf2d162",
+      "required": "src/rapidcsv.h"
+    },
+    "minhook": {
+      "repository": "https://github.com/TsudaKageyu/minhook",
+      "ref": "v1.3.4",
+      "revision": "c3fcafdc10146beb5919319d0683e44e3c30d537",
+      "url": "https://codeload.github.com/TsudaKageyu/minhook/zip/c3fcafdc10146beb5919319d0683e44e3c30d537",
+      "sha256": "cdcb160f734d81bd4d235dfea79e3f5a661c8ef0ab74fa814272aa5449069034",
+      "required": "src/hde/hde64.c"
+    },
+    "rapidjson": {
+      "repository": "https://github.com/Tencent/rapidjson",
+      "ref": "v1.1.0",
+      "revision": "f54b0e47a08782a6131cc3d60f94d038fa6e0a51",
+      "url": "https://codeload.github.com/Tencent/rapidjson/zip/f54b0e47a08782a6131cc3d60f94d038fa6e0a51",
+      "sha256": "00b9094db76b70eee42145c0be434a10369eb1c7e3f846093a45a8a8ee0a0b6e",
+      "required": "include/rapidjson/document.h"
+    },
+    "skse_menu": {
+      "repository": "https://github.com/QTR-Modding/SKSE-Menu-Framework-3-API",
+      "ref": "1dcb70179076aae4ab626f43c5baab2735ca5877",
+      "revision": "1dcb70179076aae4ab626f43c5baab2735ca5877",
+      "url": "https://codeload.github.com/QTR-Modding/SKSE-Menu-Framework-3-API/zip/1dcb70179076aae4ab626f43c5baab2735ca5877",
+      "sha256": "c1ba8e7794839ab374ff4de6303bba8b6637b162785b59203031cd0f76f17462",
+      "required": "SKSEMenuFramework.h"
+    },
+    "prisma_ui": {
+      "repository": "https://github.com/PrismaUI-SKSE/framework",
+      "ref": "aaef0713a6b4c775a654c427871f0fe53b75fcb6",
+      "revision": "aaef0713a6b4c775a654c427871f0fe53b75fcb6",
+      "url": "https://codeload.github.com/PrismaUI-SKSE/framework/zip/aaef0713a6b4c775a654c427871f0fe53b75fcb6",
+      "sha256": "a67e09828da4513a4b8c8fe701bd70098e4f8b424c6c2c7dc6cae6b1897ed311",
+      "required": "src/PrismaUI_API.h"
+    },
+    "oar": {
+      "repository": "https://github.com/ersh1/OpenAnimationReplacer",
+      "ref": "f4e7688b065175aff70aa523073857911e15aca3",
+      "revision": "f4e7688b065175aff70aa523073857911e15aca3",
+      "url": "https://codeload.github.com/ersh1/OpenAnimationReplacer/zip/f4e7688b065175aff70aa523073857911e15aca3",
+      "sha256": "4cec37566cf365d2cd9306503865dd468eca9868d4a9593a1c5742ee2caea93c",
+      "required": "src/API/OpenAnimationReplacerAPI-Conditions.h"
+    }
+  }
+}
